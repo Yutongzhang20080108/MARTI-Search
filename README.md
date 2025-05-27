@@ -1,6 +1,6 @@
 # MARTI: Multi-Agent Reinforced Training and Inference
 
-MARTI is an open-source framework for training and deploying LLM-based Multi-Agent Systems (MAS) with reinforcement learning. It enables powerful, scalable, and adaptive workflows by combining centralized multi-agent interactions with distributed policy training. MARTI supports both built-in graph-based workflows and popular third-party multi-agent frameworks like AutoGen and CAMEL.
+MARTI is an open-source framework for training LLM-based Multi-Agent Systems (MAS) with Reinforcement Learning (RL). It enables powerful, scalable, and adaptive workflows by combining centralized multi-agent interactions with distributed policy training. MARTI supports both built-in graph-based workflows and popular third-party multi-agent frameworks. We hope that MARTI not only advances reasoning capabilities beyond those of individual large language models or reasoning models, but also fosters collective intelligence as a step toward general artificial intelligence. We are actively developing more powerful LLM-based multi-agent RL approaches and warmly welcome collaborations in this direction.
 
 ## 🔥 News
 - [2025-05-27] We release the codebase of MARTI framework, welcome to have a try on LLM-based multi-agent reinforcement learning. 🤗
@@ -14,10 +14,10 @@ MARTI is an open-source framework for training and deploying LLM-based Multi-Age
   - [⚙️ Usage](#️-usage)
     - [🔁 Multi-Agent Inference](#-multi-agent-inference)
     - [🏋️ Multi-Agent Reinforcement Learning](#️-multi-agent-reinforcement-learning)
-    - [📊 Results and Training Dynamics](#-results-and-training-dynamics)
+    - [📊 Preliminary Experiments](#-preliminary-experiments)
       - [Training Details](#training-details)
-      - [Benchmarks](#benchmarks)
-      - [Case Studies](#case-studies)
+      - [Benchmark Results](#benchmark-results)
+      - [Training Dynamics](#training-dynamics)
         - [Multi-Agents Debate](#multi-agents-debate)
         - [Mixture-of-Agents](#mixture-of-agents)
   - [📚 Documentation](#-documentation)
@@ -51,9 +51,11 @@ Additionally, building on single-agent RL frameworks like [OpenRLHF](https://git
 
 ## 📦 Installation
 
-```
+```bash
 git clone https://github.com/TsinghuaC3I/MARTI.git
 cd MARTI
+
+pip install -r requirements.txt
 ```
 
 Follow the setup instructions for dependencies, including OpenRLHF, Ray, and vLLM.
@@ -68,7 +70,7 @@ MARTI supports:
 
 Example:
 
-```
+```bash
 MODLE_DIR="Path to models, like Qwen2.5-3B"
 
 # See the script for more inference examples
@@ -98,13 +100,13 @@ bash scripts/run_train_grpo.sh ${MODEL_DIR} ${WANDB_KEY}
 bash scripts/run_train_mad.sh ${MODEL_DIR} ${WANDB_KEY}
 ```
 
-### 📊 Results and Training Dynamics
+### 📊 Preliminary Experiments
 
 #### Training Details
 
 We employ the MARTI framework to train both base and reasoning models, specifically `Qwen2.5-3B` and `DeepScaleR-1.5B-Preview`. For `Qwen2.5-3B`, we implement DeepSeek-R1 zero-like reinforcement learning training using Level 3-5 samples from the MATH dataset. The `DeepScaleR-1.5B-Preview` model, which exhibits strong inherent reasoning capabilities but presents training challenges, undergoes [Test-Time Reinforcement Learning (TTRL)](https://github.com/PRIME-RL/TTRL) adaptation on AIME benchmark data. For multi-agent reinforcement learning, we employ a cluster configuration consisting of 3 nodes, each equipped with 8 A800 80GB GPUs, allocating one full node per agent.
 
-#### Benchmarks
+#### Benchmark Results
 We compare non-reasoning and reasoning models under various configurations and show that majority voting consistently outperforms multi-agent workflows when trained conventionally. This reflects known limitations of current LLM-based agent systems, such as poor role adherence and ineffective inter-agent communication.
 
 To address this, MARTI enhances model reasoning through structured agent interactions. As shown in Figure 2 and Figure 3, our experiments show that:
@@ -125,7 +127,7 @@ To address this, MARTI enhances model reasoning through structured agent interac
 <p align="center"><i>Figure 3: Average scores of reasoning models under different budget and settings</i></p>
 
 
-#### Case Studies
+#### Training Dynamics
 
 ##### Multi-Agents Debate
 We conduct multi-agent debate training with `Qwen2.5-3B` The `Qwen2.5-3B` model is trained using REINFORCE++ on Level 3 to 5 samples from the MATH-500 dataset.
