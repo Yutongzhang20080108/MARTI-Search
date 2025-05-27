@@ -86,7 +86,7 @@ class MultiAgentWorld(BaseWorld):
             max_tokens=self.shared_generate_kwargs.get("max_new_tokens", 1024),
             min_tokens=self.shared_generate_kwargs.get("min_new_tokens", 16),
             skip_special_tokens=self.shared_generate_kwargs.get("skip_special_tokens", False),
-            truncate_prompt_tokens=self.args.prompt_max_len if self.args.truncate_prompt else -1
+            truncate_prompt_tokens=self.args.prompt_max_len if self.args.truncate_prompt else None
         )
 
         group_game, group_args = self._build_multi_world(self.agents, sampling_params)
@@ -161,7 +161,7 @@ class MultiAgentWorld(BaseWorld):
                             min_tokens=self.shared_generate_kwargs.get("min_new_tokens", 16),
                             skip_special_tokens=self.shared_generate_kwargs.get("skip_special_tokens", False),
                             include_stop_str_in_output=True,
-                            truncate_prompt_tokens=self.args.prompt_max_len if self.args.truncate_prompt else -1)
+                            truncate_prompt_tokens=self.args.prompt_max_len if self.args.truncate_prompt else None)
 
         group_game, group_args = self._build_multi_world(rank_agents, sampling_params)
         group_game.run(all_prompts, **group_args)

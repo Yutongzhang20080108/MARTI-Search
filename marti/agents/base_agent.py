@@ -145,6 +145,7 @@ class Agent(ABC):
                     print(f"Warning: No outputs found for the temporal predecessor ({predecessor.id}) of agent {self.id} in round {turn_id}.")
                 temporal_info[predecessor.id] = {"role": predecessor.role, "output": processed_outputs}
         if contain_self:
+            self_outputs = []
             for r_id in range(turn_id - 1, -1, -1):  # find the latest output of the temporal predecessor
                 self_outputs = self.history.get(r_id, {}).get('outputs', [])
                 self_code_outputs = self.history.get(r_id, {}).get('code_outputs', [])

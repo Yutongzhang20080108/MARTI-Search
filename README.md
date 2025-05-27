@@ -69,7 +69,10 @@ MARTI supports:
 Example:
 
 ```
-python run_inference.py --workflow debate --model qwen-3b
+MODLE_DIR="Path to models, like Qwen2.5-3B"
+
+# See the script for more inference examples
+bash scripts/run_test_mas.sh ${MODEL_DIR}
 ```
 
 ### 🏋️ Multi-Agent Reinforcement Learning

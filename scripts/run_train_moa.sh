@@ -23,7 +23,7 @@ CKPT_PATH="${ROOT_DIR}/outputs/${ADVANTAGE}-${ALGO}//${DATE}/${SHORT_NAME}/ckpt"
 mkdir -p "${ROOT_DIR}/logs"
 mkdir -p "${ROOT_DIR}/outputs"
 
-PROMPT_MAX_LEN=8192
+PROMPT_MAX_LEN=12288
 GENERATE_MAX_LEN=4096
 
 export PYTORCH_NVML_BASED_CUDA_CHECK=1
@@ -49,12 +49,12 @@ ray job submit --address="http://localhost:8265" \
     parallel_loading=True \
     default_agent.is_reasoning_model=False \
     default_agent.ref_num_nodes=1 \
-    default_agent.ref_num_gpus_per_node=4 \
+    default_agent.ref_num_gpus_per_node=2 \
     default_agent.critic_num_nodes=1 \
-    default_agent.critic_num_gpus_per_node=4 \
+    default_agent.critic_num_gpus_per_node=2 \
     default_agent.actor_num_nodes=1 \
-    default_agent.actor_num_gpus_per_node=4 \
-    default_agent.vllm_num_engines=4 \
+    default_agent.actor_num_gpus_per_node=2 \
+    default_agent.vllm_num_engines=2 \
     default_agent.vllm_tensor_parallel_size=1 \
     default_agent.vllm_sync_backend="nccl" \
     default_agent.colocate_all_models=True \

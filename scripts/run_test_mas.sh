@@ -11,7 +11,7 @@ model=Qwen2.5-7B-Instruct
 MODEL_PATH="${MODEL_DIR}/$model"
 
 if [ -z "$1" ]; then
-    cfg_list=("ma_chain" "ma_mad" "ma_mix")
+    cfg_list=("ma_chain" "ma_mad" "ma_moa")
     echo "No config provided. Using default config list: ${cfg_list[*]}"
 else
     cfg_list=("$@")

@@ -83,9 +83,9 @@ class LLMRayActor(BaseLLMRayActor):
         if sampling_params is not None:
             truncate_prompt_tokens = sampling_params.truncate_prompt_tokens
         else:
-            truncate_prompt_tokens = -1
+            truncate_prompt_tokens = None
         
-        if truncate_prompt_tokens > 0 :
+        if truncate_prompt_tokens is not None :
             if args:
                 prompts = args[0]
                 prompt_token_ids = self.tokenizer(
