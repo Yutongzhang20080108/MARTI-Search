@@ -1,6 +1,6 @@
 # MARTI: Multi-Agent Reinforced Training and Inference
 
-MARTI is an open-source framework for training and deploying LLM-based Multi-Agent Systems (MAS) with reinforcement learning. It enables powerful, scalable, and adaptive workflows by combining centralized multi-agent interactions with distributed policy training. MARTI supports both built-in graph-based workflows and popular third-party multi-agent frameworks like AutoGen and CAMEL.
+MARTI is an open-source framework for training and deploying LLM-based Multi-Agent Systems (MAS) with reinforcement learning. It enables powerful, scalable, and adaptive workflows by combining centralized multi-agent interactions with distributed policy training. MARTI supports both built-in graph-based workflows and popular third-party multi-agent frameworks. We hope that MARTI not only advances reasoning capabilities beyond those of individual large language models or reasoning models, but also fosters collective intelligence as a step toward general artificial intelligence.
 
 ## 🔥 News
 - [2025-05-27] We release the codebase of MARTI framework, welcome to have a try on LLM-based multi-agent reinforcement learning. 🤗
@@ -51,9 +51,11 @@ Additionally, building on single-agent RL frameworks like [OpenRLHF](https://git
 
 ## 📦 Installation
 
-```
+```bash
 git clone https://github.com/TsinghuaC3I/MARTI.git
 cd MARTI
+
+pip install -r requirements.txt
 ```
 
 Follow the setup instructions for dependencies, including OpenRLHF, Ray, and vLLM.
@@ -68,7 +70,7 @@ MARTI supports:
 
 Example:
 
-```
+```bash
 MODLE_DIR="Path to models, like Qwen2.5-3B"
 
 # See the script for more inference examples
