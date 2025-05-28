@@ -90,7 +90,7 @@ MARTI supports:
 Example:
 
 ```bash
-# Minimum hardware requirement for training with 3 agents: approximately 6×80G GPUs
+# Minimum hardware requirement for training with 3 Qwen2.5-3B agents: approximately 6×80G GPUs
 
 MODLE_DIR="Path to models, like Qwen2.5-3B"
 WANDB_KEY="API key of wandb"
