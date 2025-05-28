@@ -172,7 +172,7 @@ We evaluate a mixture-of-agents approach using the `Qwen2.5-3B` model, trained o
 
 - [ ] Release MARTI Technical Report
 - [ ] Initial support for agentic tasks (e.g., GAIA benchmark)
-- [ ] More features are comming soon
+- [ ] More features are working in progress
 
 ## 👏 Acknowledge
 

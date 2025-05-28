@@ -125,7 +125,7 @@ if __name__ == "__main__":
         max_tokens=104,
         min_tokens=16)
 
-    model = OpenAIModel(api_key="sk-sZxScCcTfpoDWTEBD6A4D8B00a544c2bB69bF14f8c358976", base_url="https://api3.apifans.com/v1")
+    model = OpenAIModel(api_key="your key", base_url="base url")
 
     refs = model.generate.remote(prompts=prompts, sampling_params=sampling_params)
     results = ray.get(refs)

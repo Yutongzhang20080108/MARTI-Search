@@ -14,17 +14,17 @@ We implement two variants:
 2. a Margin Mode, which directly rewards agents for surpassing their historical average performance. Additionally, two historical evaluation scopes are provided: one considers only the most recent interaction, offering immediate but potentially variable feedback, while the other averages across all past interactions for more stable and reliable estimates. These modular and flexible strategies effectively reduce overfitting to single-turn outcomes, enhancing long-term collaboration effectiveness in multi-turn scenarios.
 
 Let $R_t^i \in [0,1]$ denote the immediate correctness reward assigned by a task verifier for agent $i$ at turn $t$, and let $Q_t^i \in [0,1]$ represent the historical performance estimate of the agent, computed over a set of previous interactions:
-$$
-Q_t^i = \frac{1}{|\mathcal{H}_t^i|} \sum_{k \in \mathcal{H}_t^i} R_k^i,
-$$
+
+$$Q_t^i = \frac{1}{|H_t^i|} \sum_{k \in H_t^i} R_k^i$$
 
 where $\mathcal{H}_t^i \subset \{1, \dots, t-1\}$ denotes the historical evaluation scope (e.g., most recent round or all previous rounds). We define the dynamic shaping term $\Delta_t^i$ under two modes:
 
 - Margin Mode: $\Delta_t^i = R_t^i - Q_t^i$
 - Quality Mode: $\Delta_t^i = Q_t^i \cdot R_t^i - (1 - Q_t^i)(1 - R_t^i)$
 
-The final shaped reward $\tilde{R}_t^i$ is then given by: $\tilde{R}_t^i = R_t^i + \alpha \cdot \Delta_t^i$
-where $\alpha \in \mathbb{R}_{\ge 0}$ is a tunable hyperparameter controlling the influence of historical consistency.
+The final shaped reward $R_t^i$ is then given by: 
+$$R_t^i = R_t^i + \alpha \cdot \Delta_t^i$$
+where $\alpha \in R_{\ge 0}$ is a tunable hyperparameter controlling the influence of historical consistency.
 
 ## Tree-based AgentPRM
 
@@ -32,15 +32,13 @@ In scenarios where the final answer does not appear in intermediate agents' outp
 
 Specifically, we adapt the existing token-level [Implicit Process Reward Model (ImplicitPRM)](https://github.com/PRIME-RL/ImplicitPRM) to an agent-level PRM through the following methodology:
 
-- Agent-level Reward Calculation. For each agent action composed of L tokens ($a_t = (a_t^1, ..., a_t^L)$), we compute the agent-level reward $A_t$ by averaging the log-likelihood ratios of generated tokens under the current policy $\pi_\theta$ versus a reference policy $\pi_{\text{ref}}$, given the context $c$ and preceding tokens:
-$$
-    A_t = \frac{1}{L} \sum_{l=1}^L \left[ \log \frac{\pi_\theta(a_t^l | a_t^{1:l-1}, c)}{\pi_{\text{ref}} (a_t^l | a_t^{1:l-1}, c)} \right]
-$$
+- Agent-level Reward Calculation. For each agent action composed of L tokens ( $a_t=(a_t^1,\cdots,a_t^L)$ ), we compute the agent-level reward $A_t$ by averaging the log-likelihood ratios of generated tokens under the current policy $\pi_\theta$ versus a reference policy $\pi_{\text{ref}}$, given the context $c$ and preceding tokens:
+
+$$A_t = \frac{1}{L} \sum_{l=1}^L \left[ \log \frac{\pi_\theta(a_t^l | a_t^{1:l-1}, c)}{\pi_{\text{ref}} (a_t^l | a_t^{1:l-1}, c)} \right]$$
 
 - Cross-Entropy Loss Calculation. We aggregate agent-level rewards ($A_t$) from all $N$ agents to compute the cross-entropy loss $\mathcal{L}_{\text{CE}}$ using the true label $y$ (where $y\in {0,1}$):
-$$
-    \mathcal{L}_{\text{CE}} = y \cdot \sigma\left( \sum_{t=1}^N \beta \cdot A_t\right) + (1-y) \cdot \left(1 - \sigma\left(\sum_{t=1}^N \beta \cdot A_t\right)\right)
-$$
+
+$$L_{\text{CE}} = y \cdot \sigma\left( \sum_{t=1}^N \beta \cdot A_t\right) + (1-y) \cdot \left(1 - \sigma\left(\sum_{t=1}^N \beta \cdot A_t\right)\right)$$
 
 Here, $\sigma(\cdot)$ denotes the sigmoid function and $\beta$ serves as a reward weighting factor.
 
