@@ -15,13 +15,8 @@ MARTI is an open-source framework for training LLM-based Multi-Agent Systems (MA
   - [📦 Installation](#-installation)
   - [⚙️ Usage](#️-usage)
     - [🔁 Multi-Agent Inference](#-multi-agent-inference)
-    - [🏋️ Multi-Agent Reinforcement Learning](#️-multi-agent-reinforcement-learning)
+    - [🏋️ Multi-Agent Training](#️-multi-agent-training)
     - [📊 Preliminary Experiments](#-preliminary-experiments)
-      - [Training Details](#training-details)
-      - [Benchmark Results](#benchmark-results)
-      - [Training Dynamics](#training-dynamics)
-        - [Multi-Agents Debate](#multi-agents-debate)
-        - [Mixture-of-Agents](#mixture-of-agents)
   - [📚 Documentation](#-documentation)
   - [🚩 Roadmap](#-roadmap)
   - [🤝 Core Contributors](#-core-contributors)
@@ -79,7 +74,7 @@ MODLE_DIR="Path to models, like Qwen2.5-3B"
 bash scripts/run_test_mas.sh ${MODEL_DIR}
 ```
 
-### 🏋️ Multi-Agent Reinforcement Learning
+### 🏋️ Multi-Agent Training
 
 MARTI supports:
 - Rule-based rewards (Reward Shaping)
