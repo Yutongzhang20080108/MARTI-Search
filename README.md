@@ -1,6 +1,8 @@
 # MARTI: Multi-Agent Reinforced Training and Inference
 
-MARTI is an open-source framework for training LLM-based Multi-Agent Systems (MAS) with Reinforcement Learning (RL). It enables powerful, scalable, and adaptive workflows by combining centralized multi-agent interactions with distributed policy training. MARTI supports both built-in graph-based workflows and popular third-party multi-agent frameworks. We hope that MARTI not only advances reasoning capabilities beyond those of individual large language models or reasoning models, but also fosters collective intelligence as a step toward general artificial intelligence. We are actively developing more powerful LLM-based multi-agent RL approaches and warmly welcome collaborations in this direction.
+MARTI is an open-source framework for training LLM-based Multi-Agent Systems (MAS) with Reinforcement Learning (RL). It enables powerful, scalable, and adaptive workflows by combining centralized multi-agent interactions with distributed policy training. MARTI supports both built-in graph-based workflows and popular third-party multi-agent frameworks. We hope that MARTI not only advances reasoning capabilities beyond those of individual large language models or reasoning models, but also fosters collective intelligence as a step toward general artificial intelligence. 
+
+**MARTI is still in a very early experimental stage, we are actively developing more powerful LLM-based multi-agent RL approaches and warmly welcome collaborations in this direction.**
 
 ## 🔥 News
 - [2025-05-27] We release the codebase of MARTI framework, welcome to have a try on LLM-based multi-agent reinforcement learning. 🤗
