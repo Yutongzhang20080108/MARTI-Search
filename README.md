@@ -17,11 +17,16 @@ MARTI is an open-source framework for training LLM-based Multi-Agent Systems (MA
     - [🔁 Multi-Agent Inference](#-multi-agent-inference)
     - [🏋️ Multi-Agent Training](#️-multi-agent-training)
     - [📊 Preliminary Experiments](#-preliminary-experiments)
+      - [Training Details](#training-details)
+      - [Benchmark Results](#benchmark-results)
+      - [Training Dynamics](#training-dynamics)
+        - [Multi-Agents Debate](#multi-agents-debate)
+        - [Mixture-of-Agents](#mixture-of-agents)
   - [📚 Documentation](#-documentation)
   - [🚩 Roadmap](#-roadmap)
+  - [👏 Acknowledge](#-acknowledge)
   - [🤝 Core Contributors](#-core-contributors)
   - [📬 Contact](#-contact)
-  - [👏 Acknowledge](#-acknowledge)
   - [🔬 Citation](#-citation)
 
 
@@ -169,6 +174,10 @@ We evaluate a mixture-of-agents approach using the `Qwen2.5-3B` model, trained o
 - [ ] Initial support for agentic tasks (e.g., GAIA benchmark)
 - [ ] More features are comming soon
 
+## 👏 Acknowledge
+
+MARTI is developed primarily based on [OpenRLHF](https://github.com/OpenRLHF/OpenRLHF). We would like to express our gratitude to the developers of [OpenRLHF](https://github.com/OpenRLHF/OpenRLHF), as well as to the teams behind [vLLM](https://github.com/vllm-project/vllm), [Ray](https://github.com/ray-project/ray) and [DeepSpeed](https://github.com/deepspeedai/DeepSpeed) for their invaluable contributions.
+
 ## 🤝 Core Contributors
 - Project Lead: [Kaiyan Zhang](https://iseesaw.github.io/)
 - Agent Group: [Runze Liu](https://ryanliu112.github.io/), [Kaiyan Zhang](https://iseesaw.github.io/), [Kai Tian](https://github.com/XiaoTiank), [Guoli Jia](https://github.com/exped1230), [Xingtai Lv](https://github.com/telxt), [Che Jiang](https://github.com/dcdsf321)
@@ -182,18 +191,14 @@ For issues or inquiries:
 - Kaiyan Zhang, Tsinghua University (zhang-ky22@mails.tsinghua.edu.cn)
 - Biqing Qi, Shanghai AI Lab (qibiqing@pjlab.org.cn)
 
-## 👏 Acknowledge
-
-MARTI is developed primarily based on [OpenRLHF](https://github.com/OpenRLHF/OpenRLHF). We would like to express our gratitude to the developers of [OpenRLHF](https://github.com/OpenRLHF/OpenRLHF), as well as to the teams behind [vLLM](https://github.com/vllm-project/vllm), [Ray](https://github.com/ray-project/ray) and [DeepSpeed](https://github.com/deepspeedai/DeepSpeed) for their invaluable contributions.
-
 ## 🔬 Citation
 
 If you use MARTI in your research, please cite the project:
 
 ```
 @misc{marti2025,
-  title={MARTI: A Framework for Multi-Agent LLM Systems - Reinforced Training and Inference},
-  author={Kaiyan Zhang and Runze Liu and Xuekai Zhu and Kai Tian and Sihang Zeng and Guoli Jia and Yuchen Fan and Xingtai Lv and Yuxin Zuo and Che Jiang and Ziyang Liu and Jianyu Wang and Yuru Wang and Junqi Gao and Ermo Hua and Xinwei Long and Youbang Sun and Zhiyuan Ma and Ganqu Cui and Ning Ding and Biqing Qi and Bowen Zhou},
+  title={MARTI: A Framework for Multi-Agent LLM Systems Reinforced Training and Inference},
+  author={Kaiyan Zhang and Runze Liu and Xuekai Zhu and Kai Tian and Sihang Zeng and Guoli Jia and Yuchen Fan and Xingtai Lv and Yuxin Zuo and Che Jiang and Ziyang Liu and Jianyu Wang and Yuru Wang and Ruotong Zhao and Ermo Hua and Yibo Wang and Shijie Wang and Junqi Gao and Xinwei Long and Youbang Sun and Zhiyuan Ma and Ganqu Cui and Lei Bai and Ning Ding and Biqing Qi and Bowen Zhou},
   year={2025},
   institution={Tsinghua University and Shanghai AI Lab},
   url={https://github.com/TsinghuaC3I/MARTI}
