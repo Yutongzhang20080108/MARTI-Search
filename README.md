@@ -44,6 +44,7 @@ We designed the **MARTI** framework following the principle of centralized multi
 Key Features:
 - Multi-Agent Inference + RL Training in a unified framework
 - Graph-based workflows (debate, chain-of-agents, mixture-of-agents)
+- Support for heterogeneous models within the same agent graph
 - Built-in credit assignment and reward shaping strategies
 - Support for diverse RL algorithms ([PPO](https://arxiv.org/abs/1707.06347), [GRPO](https://arxiv.org/abs/2402.03300), [REINFORCE++](https://arxiv.org/abs/2501.03262v3), [TTRL](https://arxiv.org/abs/2504.16084))
 - Third-party integration with AutoGen and CAMEL (experimental)
