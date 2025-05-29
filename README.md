@@ -211,3 +211,7 @@ If you use MARTI in your research, please cite the project:
   url={https://github.com/TsinghuaC3I/MARTI}
 }
 ```
+
+## ⭐️ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=TsinghuaC3I/MARTI&type=Date)](https://www.star-history.com/#TsinghuaC3I/MARTI&Date)
