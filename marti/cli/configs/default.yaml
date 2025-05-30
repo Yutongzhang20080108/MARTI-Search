@@ -46,6 +46,7 @@ mask_truncated_completions: false # https://github.com/huggingface/trl/pull/3248
 default_agent:
   pg_strategy: "SPREAD"
   # Models
+  role: "base"
   is_reasoning_model: false
   enable_thinking: false
   is_tuning: true
