@@ -26,7 +26,7 @@ do
         SAVE_PATH="${ROOT_DIR}/results/$config/$model/$task"
         mkdir -p "${SAVE_PATH}"
 
-        python -m marti.cli.commands.test --config-name "$config" \
+        python -m marti.cli.commands.test_new --config-name "$config" \
             default_agent.pretrain="$MODEL_PATH" \
             default_agent.vllm_num_engines=1 \
             default_agent.prompt_max_len=8192 \
