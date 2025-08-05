@@ -12,10 +12,10 @@ from vllm import SamplingParams
 from marti.worlds.base_world import BaseWorld, Samples
 from marti.verifiers.auto_reward_alloc import MultiAgentRewardAllocation
 
-from marti.worlds.old_games.base import BaseMultiAgentGame
-from marti.worlds.old_games.chain import MultiAgentChain
-from marti.worlds.old_games.debate import MultiAgentDebate
-from marti.worlds.old_games.mixture import MultiAgentMixture
+from marti.worlds.third_party.base import BaseMultiAgentGame
+from marti.worlds.third_party.chain import MultiAgentChain
+from marti.worlds.third_party.debate import MultiAgentDebate
+from marti.worlds.third_party.mixture import MultiAgentMixture
 
 from marti.agents.multi_agent import MAGraph, get_kwargs
 

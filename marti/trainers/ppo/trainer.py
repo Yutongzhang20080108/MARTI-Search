@@ -1,10 +1,7 @@
 import os
 import os.path
 from abc import ABC
-from typing import Any, Callable, Dict, List, Optional
-import socket
-import deepspeed
-import ray
+from typing import Dict, List, Sequence, Union
 
 import torch
 import torch.nn as nn
@@ -269,6 +266,11 @@ class PPOTrainer(ABC):
             ).unsqueeze(0)
             if self.args.use_kl_loss and experience.base_action_log_probs is not None:
                 base_action_log_probs = torch.cat(experience.base_action_log_probs, dim=0).unsqueeze(0)
+
+            if experience.action_mask is not None:
+                experience_mask = torch.cat(experience.action_mask, dim=0).unsqueeze(0)
+            else:
+                experience_mask = None
         else:
             sequences = experience.sequences
             old_action_log_probs = experience.action_log_probs
@@ -292,7 +294,7 @@ class PPOTrainer(ABC):
             if self.eos_token_id is None:
                 raise ValueError("eos_token_id must be set when mask_truncated_completions=True")
 
-            action_mask = _build_truncation_mask(
+            truncation_mask = _build_truncation_mask(
                 sequences,
                 packed_seq_lens,
                 num_actions,
@@ -300,9 +302,16 @@ class PPOTrainer(ABC):
                 dtype=torch.bool,  # 或 torch.bool
             )
         else:
-            action_mask = experience.action_mask
-            assert action_mask.shape == action_log_probs.shape, \
-                "action_mask shape mismatch"
+            truncation_mask = None
+
+        # assert action_mask.shape == action_log_probs.shape, \
+        #     "action_mask shape mismatch"
+        if truncation_mask is not None and experience_mask is not None:
+            action_mask = truncation_mask & experience_mask
+        elif truncation_mask is not None:
+            action_mask = truncation_mask
+        else:
+            action_mask = experience_mask
 
         # loss function
         actor_loss = self.actor_loss_fn(
@@ -447,78 +456,26 @@ class PPOTrainer(ABC):
                 self.critic, os.path.join(args.ckpt_path, "_" + self.critic.rolename), tag, args.max_ckpt_num, args.max_ckpt_mem
             )
 
-import torch
-from typing import List, Sequence, Union
-
-import torch
-from typing import List, Union
-
-
-def _build_truncation_mask(
-    sequences: torch.Tensor,                       # (1, Σ packed_seq_lens)
-    packed_seq_lens: Union[List[int], torch.Tensor],
-    num_actions: Union[List[int], torch.Tensor],
-    eos_token_id: int,
-    dtype: torch.dtype = torch.float32,
-) -> torch.Tensor:
-    """
-    根据每个样本最后一个 token 是否为 EOS，为整段 output 生成动作级掩码。
-
-    Returns
-    -------
-    action_mask : torch.Tensor
-        shape == (1, Σ num_actions), 与 action_log_probs / advantages 对齐。
-        值域 {0,1}，dtype=``dtype``。
-    """
-    if eos_token_id is None:
-        raise ValueError("eos_token_id must be set when building truncation mask")
-
-    device = sequences.device
-    # ---------- 保证 packed_seq_lens / num_actions 为 LongTensor ----------
-    if not isinstance(packed_seq_lens, torch.Tensor):
-        packed_seq_lens = torch.as_tensor(packed_seq_lens, dtype=torch.long, device=device)
-    else:
-        packed_seq_lens = packed_seq_lens.to(device=device, dtype=torch.long)
-
-    if not isinstance(num_actions, torch.Tensor):
-        num_actions = torch.as_tensor(num_actions, dtype=torch.long, device=device)
-    else:
-        num_actions = num_actions.to(device=device, dtype=torch.long)
-
-    # ---------- 安全检查 ----------
-    assert packed_seq_lens.shape == num_actions.shape, \
-        "`packed_seq_lens` and `num_actions` must have the same length (batch size)"
-    assert sequences.numel() == packed_seq_lens.sum().item(), \
-        "Sum(packed_seq_lens) must equal len(flattened sequences)"
-
-    # ---------- 计算每个样本的最后 token 是否为 EOS ----------
-    seq_flat = sequences.view(-1)                           # (Σ packed_seq_lens,)
-    last_token_indices = packed_seq_lens.cumsum(0) - 1      # (B,)
-    ends_with_eos = seq_flat[last_token_indices] == eos_token_id  # bool (B,)
-
-    # ---------- 将样本级标记展开到动作级 ----------
-    sample_mask = ends_with_eos.to(dtype=dtype)             # (B,)
-    action_mask = sample_mask.repeat_interleave(num_actions)  # (Σ num_actions,)
-
-    return action_mask.unsqueeze(0)                         # (1, Σ num_actions)
-
 # def _build_truncation_mask(
-#     sequences: torch.Tensor,                       # shape: (1, Σ packed_seq_lens)
+#     sequences: torch.Tensor,                       # (1, Σ packed_seq_lens)
 #     packed_seq_lens: Union[List[int], torch.Tensor],
 #     num_actions: Union[List[int], torch.Tensor],
-#     eos_token_ids: Union[int, Sequence[int]],      # int 或 如 [1,2,3]
+#     eos_token_id: int,
 #     dtype: torch.dtype = torch.float32,
 # ) -> torch.Tensor:
 #     """
-#     动作级截断掩码：
-#         若样本的 (input+output) 最后 m 个 token 与 eos_token_ids 完全一致 → 1
-#         否则 → 0
-#     返回值 shape = (1, Σ num_actions)，与 action_log_probs 对齐。
-#     """
-#     # ---------- 参数规范化 ----------
-#     device = sequences.device
-#     seq_flat = sequences.view(-1)                               # (Σ packed_seq_lens,)
+#     According to whether the last token of each sample is EOS, generate an action-level mask for the entire output.
 
+#     Returns
+#     -------
+#     action_mask : torch.Tensor
+#         The shape is (1, Σ num_actions) and aligns with action_log_probs / advantages. The range is {0, 1}, with data type `dtype`.
+#     """
+#     if eos_token_id is None:
+#         raise ValueError("eos_token_id must be set when building truncation mask")
+
+#     device = sequences.device
+#     # ---------- Make sure packed_seq_lens / num_actions are LongTensor ----------
 #     if not isinstance(packed_seq_lens, torch.Tensor):
 #         packed_seq_lens = torch.as_tensor(packed_seq_lens, dtype=torch.long, device=device)
 #     else:
@@ -529,40 +486,87 @@ def _build_truncation_mask(
 #     else:
 #         num_actions = num_actions.to(device=device, dtype=torch.long)
 
-#     eos_tokens = torch.as_tensor(
-#         eos_token_ids if isinstance(eos_token_ids, Sequence) else [int(eos_token_ids)],
-#         dtype=seq_flat.dtype,
-#         device=device,
-#     )
-#     m = eos_tokens.numel()                                      # 结束序列长度
-
-#     # ---------- 安全检查 ----------
+#     # ---------- check ----------
 #     assert packed_seq_lens.shape == num_actions.shape, \
-#         "`packed_seq_lens` and `num_actions` must have same length (batch size)"
-#     assert seq_flat.numel() == packed_seq_lens.sum().item(), \
+#         "`packed_seq_lens` and `num_actions` must have the same length (batch size)"
+#     assert sequences.numel() == packed_seq_lens.sum().item(), \
 #         "Sum(packed_seq_lens) must equal len(flattened sequences)"
 
-#     # ---------- 取出每个样本的最后 m 个 token ----------
-#     ends = packed_seq_lens.cumsum(0)                            # (B,) 结尾位置(1-based)
-#     starts = ends - m                                           # (B,)
-#     valid_len = packed_seq_lens >= m                            # (B,) 够不够长
+#     # ---------- Calculate whether the last token of each sample is EOS ----------
+#     seq_flat = sequences.view(-1)                           # (Σ packed_seq_lens,)
+#     last_token_indices = packed_seq_lens.cumsum(0) - 1      # (B,)
+#     ends_with_eos = seq_flat[last_token_indices] == eos_token_id  # bool (B,)
 
-#     # 为了向量化，将所有样本的结束片段拉成 (B, m)
-#     # 1) 计算 [0,1,2,...,m-1]，广播到 (B, m)
-#     offset = torch.arange(m, device=device).expand(len(starts), m)
-#     # 2) 索引 = starts.unsqueeze(1) + offset  (可能为负；稍后 mask 掉)
-#     gather_idx = starts.unsqueeze(1) + offset                   # (B, m)
-#     # 3) 不够长的样本全部置 -1，后面比较时立即失败
-#     gather_idx[~valid_len, :] = -1
-#     last_tokens = seq_flat[gather_idx.clamp(min=0)]             # (B, m)
-#     # 对于无效样本（gather_idx=-1），last_tokens＝seq_flat[0]，但 valid_len 已标识
+#     # ---------- Expand sample-level tags to action level ----------
+#     sample_mask = ends_with_eos.to(dtype=dtype)             # (B,)
+#     action_mask = sample_mask.repeat_interleave(num_actions)  # (Σ num_actions,)
 
-#     # ---------- 判断是否完全匹配 ----------
-#     match = (last_tokens == eos_tokens)                         # (B, m) 逐位相等
-#     ends_with_eos = valid_len & match.all(dim=1)                # (B,) True/False
+#     return action_mask.unsqueeze(0)                         # (1, Σ num_actions)
 
-#     # ---------- 展开到动作级 ----------
-#     sample_mask = ends_with_eos.to(dtype=dtype)                 # (B,)
-#     action_mask = sample_mask.repeat_interleave(num_actions)    # (Σ num_actions,)
+def _build_truncation_mask(
+    sequences: torch.Tensor,                       # shape: (1, Σ packed_seq_lens)
+    packed_seq_lens: Union[List[int], torch.Tensor],
+    num_actions: Union[List[int], torch.Tensor],
+    eos_token_ids: Union[int, Sequence[int]],      # int or [1,2,3]
+    dtype: torch.dtype = torch.float32,
+) -> torch.Tensor:
+    """
+    Action-level truncation mask:
 
-#     return action_mask.unsqueeze(0)                             # (1, Σ num_actions)
+    If the last m tokens of the sample's (input+output) are completely identical to eos_token_ids → 1
+
+    Otherwise → 0
+
+    Return value shape = (1, Σ num_actions), aligned with action_log_probs.
+    """
+    # ---------- Parameter normalization ----------
+    device = sequences.device
+    seq_flat = sequences.view(-1)                               # (Σ packed_seq_lens,)
+
+    if not isinstance(packed_seq_lens, torch.Tensor):
+        packed_seq_lens = torch.as_tensor(packed_seq_lens, dtype=torch.long, device=device)
+    else:
+        packed_seq_lens = packed_seq_lens.to(device=device, dtype=torch.long)
+
+    if not isinstance(num_actions, torch.Tensor):
+        num_actions = torch.as_tensor(num_actions, dtype=torch.long, device=device)
+    else:
+        num_actions = num_actions.to(device=device, dtype=torch.long)
+
+    eos_tokens = torch.as_tensor(
+        eos_token_ids if isinstance(eos_token_ids, Sequence) else [int(eos_token_ids)],
+        dtype=seq_flat.dtype,
+        device=device,
+    )
+    m = eos_tokens.numel()                                      # End sequence length
+
+    # ---------- Safety inspection ----------
+    assert packed_seq_lens.shape == num_actions.shape, \
+        "`packed_seq_lens` and `num_actions` must have same length (batch size)"
+    assert seq_flat.numel() == packed_seq_lens.sum().item(), \
+        "Sum(packed_seq_lens) must equal len(flattened sequences)"
+
+    # ---------- Extract the last m tokens from each sample ----------
+    ends = packed_seq_lens.cumsum(0)                            # (B,) End position(1-based)
+    starts = ends - m                                           # (B,)
+    valid_len = packed_seq_lens >= m                            # (B,) Is it long enough?
+
+    # In order to vectorize, pull the end segments of all samples to (B, m)
+    # 1) Calculate [0,1,2,...,m-1], broadcast to (B, m)
+    offset = torch.arange(m, device=device).expand(len(starts), m)
+    # 2) Index = starts.unsqueeze(1) + offset (may be negative; mask later)
+    gather_idx = starts.unsqueeze(1) + offset                   # (B, m)
+    # 3) All insufficiently long samples are set to -1, and immediate failure occurs during subsequent comparisons.
+    gather_idx[~valid_len, :] = -1
+    last_tokens = seq_flat[gather_idx.clamp(min=0)]             # (B, m)
+    # For invalid samples (gather_idx=-1), last_tokens = seq_flat[0], but valid_len has been identified
+
+    # ---------- Determine whether it is a complete match ----------
+    match = (last_tokens == eos_tokens)                         # (B, m) Bitwise equality
+    ends_with_eos = valid_len & match.all(dim=1)                # (B,) True/False
+
+    # ---------- Expand to action level ----------
+    sample_mask = ends_with_eos.to(dtype=dtype)                 # (B,)
+    action_mask = sample_mask.repeat_interleave(num_actions)    # (Σ num_actions,)
+
+    return action_mask.unsqueeze(0)                             # (1, Σ num_actions)

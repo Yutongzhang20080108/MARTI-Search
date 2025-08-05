@@ -4,8 +4,10 @@ import os
 import itertools
 from abc import ABC
 import math
-from typing import Callable, Dict, List, Optional
+import itertools
 from collections import defaultdict
+
+from typing import Callable, Dict, List, Optional
 
 import torch
 from tqdm import tqdm
@@ -19,12 +21,13 @@ from marti.trainers.ppo.actor import ActorModelRayActor
 from marti.trainers.ppo.critic import CriticModelRayActor
 from marti.models.vllm.engine import create_vllm_engines
 from marti.models.ray_launcher import PPORayActorGroup, ReferenceModelRayActor, RewardModelRayActor
-from marti.data.prompts_loader import PromptDatasetWithLabel
-from marti.data.sft_loader import SFTDataset
+from marti.dataset.prompts_loader import PromptDatasetWithLabel
+from marti.dataset.sft_loader import SFTDataset
 from marti.helpers.common import blending_datasets, get_tokenizer
 from marti.helpers.distributed.distributed_sampler import DistributedSampler, ResumableRandomSampler
 
 from marti.worlds.base_world import BaseWorld
+from marti.worlds.tool_world import ToolWorld
 
 @dataclass
 class Agent:
@@ -106,8 +109,13 @@ class BaseController(ABC):
         # prepare agent includes many workers
         self.agent = self._init_agent()
 
+        if self.args.agent_workflow == "base":
+            world_class = BaseWorld
+        elif self.args.agent_workflow == "tool":
+            world_class = ToolWorld
+
         # create samples maker
-        self.world = BaseWorld(
+        self.world = world_class(
             strategy=self.strategy, agents=[self.agent.get_metadata()])
 
     def _init_tok_kwargs(self, args, pretrain):
@@ -156,6 +164,11 @@ class BaseController(ABC):
                     f"and {args.vllm_num_engines * args.vllm_tensor_parallel_size}"
                 )
 
+            if args.agent_workflow == "tool":
+                from marti.models.vllm.engine_async import LLMRayActorAsync as LLMRayActor
+            else:
+                from marti.models.vllm.engine import LLMRayActor
+
             vllm_engines = create_vllm_engines(
                 args.vllm_num_engines,
                 args.vllm_tensor_parallel_size,
@@ -167,6 +180,8 @@ class BaseController(ABC):
                 pg,
                 args.vllm_gpu_memory_utilization,
                 args.vllm_enable_sleep,
+                LLMRayActor,
+                args.agent_func_path
             )
 
         actor_model = PPORayActorGroup(
@@ -236,7 +251,11 @@ class BaseController(ABC):
                 strategy, args.pretrain)
             ray.get(refs)
 
-        eos_token_ids = self.args.eos_token_id if self.args.eos_token_id is not None else self.tokenizer.eos_token_id
+        if self.args.eos_token is not None:
+            eos_token_ids = self.tokenizer(self.args.eos_token, add_special_tokens=False).input_ids
+        else:
+            eos_token_ids = self.tokenizer.eos_token_id
+
         refs = actor_model.async_init_model_from_pretrained(
             strategy, args.pretrain, self._max_steps, "actor", eos_token_ids)
         ray.get(refs)
@@ -277,6 +296,9 @@ class BaseController(ABC):
         # wandb/tensorboard setting
         self._wandb = None
         self._tensorboard = None
+        if self.strategy.args.eval_only:
+            return
+
         if self.strategy.args.use_wandb:
             import wandb
 
@@ -308,9 +330,7 @@ class BaseController(ABC):
             from torch.utils.tensorboard import SummaryWriter
 
             os.makedirs(self.strategy.args.use_tensorboard, exist_ok=True)
-            log_dir = os.path.join(
-                self.strategy.args.use_tensorboard, strategy.args.wandb_run_name)
-            self._tensorboard = SummaryWriter(log_dir=log_dir)
+            self._tensorboard = SummaryWriter(log_dir=self.strategy.args.use_tensorboard)
 
     def prepare_datasets(self, tokenizer):
         strategy = self.strategy
@@ -339,7 +359,14 @@ class BaseController(ABC):
             self.prompts_dataset_extra_eval_tasks = {}
             extra_eval_tasks = args.extra_eval_tasks
             for task in extra_eval_tasks:
-                prompts_data_extra_eval_task = load_dataset("json", data_files=os.path.join(args.extra_eval_dir, f"{task}.json"))["train"]
+                task_path = os.path.join(args.extra_eval_dir, f"{task}.json")
+                if not os.path.exists(task_path):
+                    task_path = os.path.join(args.extra_eval_dir, f"{task}.jsonl")
+                if not os.path.exists(task_path):
+                    raise ValueError("Only support json or jsonl data")
+                
+                prompts_data_extra_eval_task = load_dataset("json", data_files=task_path)["train"]
+                
                 self.prompts_dataset_extra_eval_tasks[task] = PromptDatasetWithLabel(
                     prompts_data_extra_eval_task, tokenizer, strategy, input_template=args.input_template, add_prompt_suffix=args.add_prompt_suffix
                 )
@@ -380,8 +407,9 @@ class BaseController(ABC):
             num_update_steps_per_episodes=num_update_steps_per_episodes
         )
         
-        # save actor and critic workers in agent
-        self.agent.save_actor_and_critic_model(self.args, self.tokenizer)
+        if not self.args.eval_only:
+            # save actor and critic workers in agent
+            self.agent.save_actor_and_critic_model()
 
     def clean_template(self, prompt):
         """
@@ -445,26 +473,86 @@ class BaseController(ABC):
         )
         assert len(pretrain_dataset) > 0, f"{len(pretrain_dataset)} samples are generated."
         return pretrain_dataset
-
     def generate_shared_samples(self, rand_prompts):
         world_size = self.agent.actor_model_group.world_size
+        num_engines  = len(self.agent.vllm_engines)
+        micro_bs     = self.args.micro_rollout_batch_size
 
         any_key = next(iter(rand_prompts.keys()))
         length = len(rand_prompts[any_key])
-        chunk_size = (length + world_size - 1) // world_size
+
+        # When the number of prompts in a batch is smaller than the actor world
+        # size or when prompts cannot be evenly distributed, some ranks may
+        # receive an empty list after chunking. This leads to no experiences
+        # generated on those ranks and later failures when processing an empty
+        # experience list.  Duplicate prompts when necessary and use an even
+        # splitting strategy so that each rank obtains at least one element.
+        if length < world_size:
+            repeat = (world_size + length - 1) // length
+            for key, data_list in rand_prompts.items():
+                rand_prompts[key] = (data_list * repeat)[:world_size]
+            length = len(rand_prompts[any_key])
+
+        def even_chunks(lst, n):
+            k, m = divmod(len(lst), n)
+            chunks = []
+            start = 0
+            for i in range(n):
+                end = start + k + (1 if i < m else 0)
+                chunks.append(lst[start:end])
+                start = end
+            return chunks
+
         chunked = [dict() for _ in range(world_size)]
         for key, data_list in rand_prompts.items():
+            splits = even_chunks(data_list, world_size)
             for i in range(world_size):
-                start_idx = i * chunk_size
-                end_idx = min(start_idx + chunk_size, length)
-                sub_slice = data_list[start_idx:end_idx]
-                chunked[i][key] = sub_slice
-        
-        all_refs = []
-        for rank in range(world_size):
-            samples_ref = generate_samples_remote.remote(self.world, chunked[rank], rank, world_size)
-            all_refs.append(samples_ref)
-        all_results = ray.get(all_refs)
+                chunked[i][key] = splits[i]
+
+        # 2. If the number of engines is less than world_size, divide evenly.
+        if num_engines < world_size:
+            # Divide world_size chunks into num_engines sublists
+            engine_sublists = even_chunks(chunked, num_engines)
+
+            # Merge each dict in the sublist
+            engine_inputs = []
+            for sublist in engine_sublists:
+                merged = defaultdict(list)
+                for d in sublist:
+                    for k, vals in d.items():
+                        merged[k].extend(vals)
+                engine_inputs.append(merged)
+
+            # parallel invocation
+            refs = [
+                generate_samples_remote.remote(self.world, engine_inputs[i], i, num_engines)
+                for i in range(num_engines)
+            ]
+            engine_results = ray.get(refs)
+
+            # 3. Unpack to world_size pieces
+            all_results = []
+            for sublist, res in zip(engine_sublists, engine_results):
+                num_ranks = len(sublist)
+                # Firstly, split each "list" field into num_ranks parts.
+                split_fields = {
+                    k: even_chunks(v, num_ranks)
+                    for k, v in res.items() if isinstance(v, list)
+                }
+                # Assemble the results of each rank
+                for i in range(num_ranks):
+                    out = {}
+                    for k, v in res.items():
+                        out[k] = split_fields[k][i] if isinstance(v, list) else v
+                    all_results.append(out)
+
+        else:
+            # The number of engines is greater than or equal to world_size, directly one-to-one
+            refs = [
+                generate_samples_remote.remote(self.world, chunked[r], r, world_size)
+                for r in range(world_size)
+            ]
+            all_results = ray.get(refs)
 
         shared_data_refs = [None for _ in range(world_size)]
         sft_samples = []
@@ -551,7 +639,11 @@ class BaseController(ABC):
             num_rollouts_per_episodes * args.rollout_batch_size)
 
         # Eval before training
-        self.save_logs(args, steps, self.evaluate_tasks(steps), None)
+        if args.eval_before_training or args.eval_only:
+            self.save_logs(args, steps, self.evaluate_tasks(steps), None)
+
+        if args.eval_only:
+            return
 
         for episode in range(start_episode, args.num_episodes):
             if isinstance(self.prompts_dataloader.sampler, ResumableRandomSampler):

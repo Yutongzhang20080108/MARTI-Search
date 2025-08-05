@@ -87,7 +87,7 @@ def train(cfg: DictConfig):
     strategy = get_strategy(cfg)
 
     agent_workflow = cfg.get("agent_workflow", "base")
-    if agent_workflow == "base":
+    if agent_workflow in ["base", "tool"]:
         controller_class = BaseController
     elif agent_workflow in ["multi-agents-debate", "chain-of-agents", "mixture-of-agents"]:
         controller_class = MultiAgentController

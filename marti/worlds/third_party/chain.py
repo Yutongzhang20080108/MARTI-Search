@@ -6,7 +6,7 @@ from typing import List
 from marti.verifiers.qwen.qwen_eval import qwen_reward_fn
 from marti.verifiers.qwen.qwen_math_parser import extract_answer
 
-from marti.worlds.old_games.base import BaseMultiAgentGame
+from marti.worlds.third_party.base import BaseMultiAgentGame
 
 id2template = {
     "0": {

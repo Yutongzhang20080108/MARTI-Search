@@ -2,6 +2,8 @@
 # Loading all models parallel or not
 parallel_loading: false
 agent_workflow: "base"
+agent_func_path: null
+
 workflow_version: "old" # old (custom) or new (unified graph)
 
 # shared parameters among agents
@@ -39,8 +41,18 @@ reward_alloc:
   beta: 0.5
   use_ttrl: false
 
+# Allow a list of labels for each problem
+allow_label_list: false
+separate_label_list: null
+
 ### Advanced RL tricks
 mask_truncated_completions: false # https://github.com/huggingface/trl/pull/3248/
+eval_before_training: true
+eval_only: false
+eval_workers: -1
+
+# For Qwen3
+# enable_thinking: false
 
 ### Default Agent Parameters (e.g., single agent)
 default_agent:
@@ -138,6 +150,7 @@ default_agent:
   actor_learning_rate: 1.0e-6
   critic_learning_rate: 9.0e-6
   lr_warmup_ratio: 0.03
+  lr_warmup_steps: null
   kl_target: null
   init_kl_coef: 0.01
   use_kl_estimator_k3: false
@@ -145,11 +158,12 @@ default_agent:
   adam_betas: [0.9, 0.95]
   reward_clip_range: [-10, 10]
   advantage_estimator: "gae"
+  no_advantage_std_norm: false
   training_mode: "rl"
-  eos_token_id: null # for loss mask on overlong completions
+  eos_token: null # for loss mask on overlong completions
 
 ### Datasets
-packing_samples: false
+packing_samples: true
 extra_eval_tasks: null
 extra_eval_dir: null
 
@@ -167,6 +181,7 @@ pretrain_split: "train"
 input_key: "input"
 label_key: "label"
 output_key: "output"
+metadata_key: "metadata"
 add_think_token: 0
 add_prompt_suffix: "\n\nPlease reason step by step, and put your final answer within \\boxed{}."
 input_template: null

@@ -129,18 +129,14 @@ class MultiAgentRewardAllocation:
         assert len(all_golden_answers) == len(histories)
         return all_golden_answers
         
-    def run(self, histories, golden_answers, n_samples_per_prompt=None):
+    def run(self, histories, golden_answers, n_samples_per_prompt=None, answer_key="assistant"):
         """
         MoA & CoA: [[agent1, agent2, agent3], [...]]
         MAD: [[[Agent11, Agent12, Agent13], [Agent21, Agent22, Agent23], [...]], [...]]
         """
-        if self.use_ttrl:
-            assert n_samples_per_prompt is not None, "`n_samples_per_prompt` should be provided for test-time RL"
-            golden_answers = self.init_golden_answers_from_majority_voting(histories, n_samples_per_prompt)
-
         if isinstance(histories[0][0], dict):
             all_answers = [
-                [agent["assistant"] for agent in agent_data]
+                [agent[answer_key] for agent in agent_data]
                 for agent_data in histories
             ]
             turn_ids = [
@@ -149,7 +145,7 @@ class MultiAgentRewardAllocation:
             ]
         elif isinstance(histories[0][0], list):
             all_answers = [
-                [[turn["assistant"] for turn in agent] for agent in agent_data]
+                [[turn[answer_key] for turn in agent] for agent in agent_data]
                 for agent_data in histories
             ]
             turn_ids = [
@@ -158,6 +154,10 @@ class MultiAgentRewardAllocation:
             ]
         else:
             raise ValueError
+
+        if self.use_ttrl:
+            assert n_samples_per_prompt is not None, "`n_samples_per_prompt` should be provided for test-time RL"
+            golden_answers = self.init_golden_answers_from_majority_voting(all_answers, n_samples_per_prompt)
 
         return self.assign_rewards(all_answers, golden_answers, turn_ids)
 

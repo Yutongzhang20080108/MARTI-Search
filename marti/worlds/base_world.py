@@ -142,6 +142,7 @@ class BaseWorld(ABC):
         self.shared_generate_kwargs = kwargs.get("shared_generate_kwargs", agents[0]["generate_kwargs"])
         self.prompt_max_len = self.args.prompt_max_len
         self.generate_max_len = self.args.generate_max_len
+        self.total_max_len = self.args.max_len if self.args.max_len is not None else self.prompt_max_len + self.generate_max_len
         self.packing_samples = getattr(self.args, "packing_samples", False)
 
     def tokenize_fn(self, tokenizer, texts, max_length, padding=True, device=None):
@@ -331,22 +332,24 @@ class BaseWorld(ABC):
                 packed_seq_lens = []
                 attention_mask = []
                 num_actions = []
-                for i, output in enumerate(outputs):
+                action_mask = []
+                for j, output in enumerate(outputs):
                     input_len = len(output.prompt_token_ids)
                     output_len = len(output.outputs[0].token_ids)
                     packed_seq_lens.append(input_len + output_len)
                     sequences.extend(output.prompt_token_ids +
                                      list(output.outputs[0].token_ids))
                     # https://github.com/OpenRLHF/OpenRLHF/issues/587
-                    attention_mask.extend([i + 1] * (input_len + output_len))
-
+                    attention_mask.extend([j + 1] * (input_len + output_len))
                     # current_action_mask = [0] * (input_len - 1) + [1] * output_len + [0]
                     # num_actions.append(max(1, sum(current_action_mask)))
                     num_actions.append(max(1, output_len))
+                    action_mask.extend([1] * max(1, output_len))
                 sequences = torch.tensor(sequences, device="cpu").unsqueeze(0)
                 attention_mask = torch.tensor(
                     attention_mask, device="cpu").unsqueeze(0)
-                action_mask = None
+                action_mask = torch.tensor(
+                    action_mask, device="cpu").unsqueeze(0)
                 response_length = torch.tensor(
                     num_actions, device="cpu", dtype=torch.float)
                 total_length = torch.tensor(
@@ -355,7 +358,7 @@ class BaseWorld(ABC):
                     Samples(
                         sequences=sequences,
                         attention_mask=attention_mask,
-                        action_mask=None,
+                        action_mask=action_mask,
                         num_actions=num_actions,
                         packed_seq_lens=packed_seq_lens,
                         response_length=response_length,

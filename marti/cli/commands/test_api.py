@@ -5,8 +5,8 @@ import srsly
 from omegaconf import DictConfig, OmegaConf
 from vllm import SamplingParams
 from marti.models.openai import OpenAIModel, FakeTokenizer
-from marti.worlds.old_games.chain import MultiAgentChain
-from marti.worlds.old_games.debate import MultiAgentDebate
+from marti.worlds.third_party.chain import MultiAgentChain
+from marti.worlds.third_party.debate import MultiAgentDebate
 
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

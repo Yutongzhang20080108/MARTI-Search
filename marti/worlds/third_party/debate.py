@@ -3,7 +3,7 @@ import random
 from collections import defaultdict
 from typing import List
 from marti.verifiers.qwen.qwen_eval import qwen_reward_fn, majority_vote
-from marti.worlds.old_games.base import BaseMultiAgentGame
+from marti.worlds.third_party.base import BaseMultiAgentGame
 
 id2template = {
     "1": """Here are solutions from other agents:

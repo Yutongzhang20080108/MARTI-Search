@@ -60,7 +60,7 @@ class Experience:
         if self.attention_mask is not None:
             self.attention_mask = self.attention_mask.to(device)
         if self.action_mask is not None:
-            self.action_mask = self.action_mask.to(device)
+            self.action_mask = to(self.action_mask, device)
 
     def pin_memory(self):
         self.sequences = pin_memory(self.sequences)
@@ -74,7 +74,7 @@ class Experience:
         if self.attention_mask is not None:
             self.attention_mask = self.attention_mask.pin_memory()
         if self.action_mask is not None:
-            self.action_mask = self.action_mask.pin_memory()
+            self.action_mask = pin_memory(self.action_mask)
         return self
 
 class ExperienceMaker(ABC):
@@ -178,6 +178,31 @@ class ExperienceMaker(ABC):
             experience.kl = None
             del experience.info["num_actions"]
 
+        # Normalize advantages across all experiences
+        if self.advantage_estimator in ["group_norm"]:
+            all_advantages = []
+            all_action_masks = []
+            for exp in experiences:
+                all_advantages.extend(exp.advantages)
+                all_action_masks.extend(exp.action_mask)
+
+            advantages_vector = torch.cat(all_advantages, dim=0).float()
+            action_masks_vector = torch.cat(all_action_masks, dim=0)
+            num_actions = action_masks_vector.sum()
+
+            # mean
+            mean = (advantages_vector * action_masks_vector).sum() / num_actions
+            # std
+            if not self.strategy.args.no_advantage_std_norm:
+                var = ((advantages_vector - mean).pow(2) * action_masks_vector).sum() / num_actions
+                rstd = var.clamp(min=1e-8).rsqrt()
+            else:
+                rstd = 1
+
+            # Apply normalization to each experience
+            for exp in experiences:
+                exp.advantages = [(advantage - mean) * rstd for advantage in exp.advantages]
+
         if self.critic is not None:
             for experience in experiences:
                 # send experience to critic
@@ -256,8 +281,10 @@ class ExperienceMaker(ABC):
             # TODO: this is slow...
             advantages = []
             returns = []
-            for v, r in zip(values, rewards):
-                adv, ret = self.get_advantages_and_returns(v.unsqueeze(0), r.unsqueeze(0), action_mask, gamma, lambd)
+            if action_mask is None:
+                action_mask = [None] * len(values)
+            for v, r, m in zip(values, rewards, action_mask):
+                adv, ret = self.get_advantages_and_returns(v.unsqueeze(0), r.unsqueeze(0), m, gamma, lambd)
                 advantages.append(adv.squeeze(0))
                 returns.append(ret.squeeze(0))
             return advantages, returns
@@ -276,6 +303,7 @@ class ExperienceMaker(ABC):
             delta = rewards[:, t] + gamma * nextvalues - values[:, t]
             lastgaelam = delta + gamma * lambd * lastgaelam
             advantages_reversed.append(lastgaelam)
+        
         advantages = torch.stack(advantages_reversed[::-1], dim=1)
         returns = advantages + values
         return advantages.detach(), returns
@@ -304,8 +332,11 @@ class ExperienceMaker(ABC):
             # packing samples
             # TODO: this is slow...
             returns = []
-            for r in rewards:
-                ret = self.get_cumulative_returns(r.unsqueeze(0), action_mask, gamma)
+            if action_mask is None:
+                action_mask = [None] * len(rewards)
+
+            for r, m in zip(rewards, action_mask):
+                ret = self.get_cumulative_returns(r.unsqueeze(0), m, gamma)
                 returns.append(ret.squeeze(0))
             return returns
 
@@ -418,6 +449,9 @@ class ExperienceMaker(ABC):
                 value = unpacking_samples(value, num_actions)
             if base_action_log_probs is not None:
                 base_action_log_probs = unpacking_samples(base_action_log_probs, num_actions)
+            if action_mask is not None:
+                action_mask = unpacking_samples(action_mask, num_actions)
+    
             kl = unpacking_samples(kl, num_actions)
             kl_mean = torch.tensor([each_kl.mean() for each_kl in kl], device=device)
 

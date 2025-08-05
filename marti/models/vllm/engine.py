@@ -131,6 +131,8 @@ def create_vllm_engines(
     shared_pg=None,
     gpu_memory_utilization=None,
     vllm_enable_sleep=False,
+    llm_actor_cls=LLMRayActor,
+    agent_func_path=None
 ):
     import vllm
 
@@ -163,7 +165,7 @@ def create_vllm_engines(
         )
 
         vllm_engines.append(
-            LLMRayActor.options(
+            llm_actor_cls.options(
                 num_cpus=num_gpus,
                 num_gpus=num_gpus,
                 scheduling_strategy=scheduling_strategy,
@@ -182,6 +184,7 @@ def create_vllm_engines(
                 max_model_len=max_model_len,
                 num_gpus=0.2 if use_hybrid_engine else 1,
                 enable_sleep_mode=vllm_enable_sleep,
+                agent_func_path=agent_func_path
             )
         )
 

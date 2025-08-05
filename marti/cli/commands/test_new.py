@@ -17,7 +17,7 @@ from marti.models.openai import OpenAIModel, FakeTokenizer
 from marti.worlds.base_world import BaseWorld, Samples
 from marti.agents.multi_agent import MAGraph, get_kwargs
 from marti.verifiers.qwen.qwen_eval import qwen_reward_fn, majority_vote
-from marti.data.prompts_loader import PromptDatasetWithLabel
+from marti.dataset.prompts_loader import PromptDatasetWithLabel
 from marti.helpers.distributed.distributed_sampler import DistributedSampler, ResumableRandomSampler
 
 import os

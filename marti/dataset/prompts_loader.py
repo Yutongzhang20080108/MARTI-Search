@@ -1,4 +1,5 @@
 import random
+import json
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
@@ -11,7 +12,8 @@ def preprocess_data(data, input_template=None, input_key="input", apply_chat_tem
             chat = [{"role": "user", "content": chat}]
         if add_system_prompt:
             chat = [{"role": "system", "content": add_system_prompt}] + chat
-        prompt = apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
+        prompt = apply_chat_template(
+            chat, tokenize=False, add_generation_prompt=True)
     else:
         prompt = data[input_key]
         if add_prompt_suffix is not None:
@@ -47,9 +49,12 @@ class PromptDatasetWithLabel(Dataset):
         self.input_template = input_template
         input_key = getattr(self.strategy.args, "input_key", None)
         label_key = getattr(self.strategy.args, "label_key", None)
-        apply_chat_template = getattr(self.strategy.args, "apply_chat_template", False)
+        apply_chat_template = getattr(
+            self.strategy.args, "apply_chat_template", False)
+
         add_think_token = getattr(self.strategy.args, "add_think_token", 0)
-        add_system_prompt = getattr(self.strategy.args, "add_system_prompt", None)
+        add_system_prompt = getattr(
+            self.strategy.args, "add_system_prompt", None)
         if apply_chat_template and self.tokenizer is not None:
             apply_chat_template = self.tokenizer.apply_chat_template
 
@@ -57,19 +62,25 @@ class PromptDatasetWithLabel(Dataset):
         indice = 0
         print(dataset)
         for data in tqdm(dataset, desc="Preprocessing data"):
-            prompt = preprocess_data(data, input_template, input_key, apply_chat_template, add_prompt_suffix, add_system_prompt)
+            prompt = preprocess_data(data, input_template, input_key,
+                                     apply_chat_template, add_prompt_suffix, add_system_prompt)
             if apply_chat_template and add_think_token != 0:
                 prompt = prompt + "<think>"
             label = data[label_key]
+
             if isinstance(label, list):
                 label = label[0]
             if isinstance(label, float) or isinstance(label, int):
                 label = str(label)
-                
-            self.prompts.append({"prompt": prompt, "label": label, "indice": indice})
+
+            metadata_key = self.strategy.args.metadata_key
+            sample = {"prompt": prompt, "label": label,
+                      "indice": indice, "metadata": json.dumps(data.get(metadata_key, {}))}
+
+            self.prompts.append(sample)
             indice += 1
 
-        for sample in random.sample(self.prompts, 3):
+        for sample in random.sample(self.prompts, 2):
             print(sample)
             print("="*20)
 

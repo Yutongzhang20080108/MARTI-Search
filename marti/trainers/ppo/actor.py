@@ -11,8 +11,8 @@ import torch
 from transformers.trainer import get_scheduler
 from datasets import Dataset
 
-from marti.data.prompts_loader import PromptDatasetWithLabel
-from marti.data.sft_loader import SFTDataset
+from marti.dataset.prompts_loader import PromptDatasetWithLabel
+from marti.dataset.sft_loader import SFTDataset
 from marti.models.actor import Actor
 from marti.trainers.ppo.trainer import PPOTrainer
 from marti.trainers.experience_maker import Experience, ExperienceMaker
@@ -120,14 +120,14 @@ class ActorPPOTrainer(PPOTrainer):
 
                 collective.init_collective_group(world_size=world_size, rank=0, backend=backend, group_name=actor_name)
                 self._model_update_group = actor_name
-
-            self._model_update_group = init_process_group(
-                backend=backend,
-                init_method=f"tcp://{master_address}:{master_port}",
-                world_size=world_size,
-                rank=0,
-                group_name=actor_name,
-            )
+            else:
+                self._model_update_group = init_process_group(
+                    backend=backend,
+                    init_method=f"tcp://{master_address}:{master_port}",
+                    world_size=world_size,
+                    rank=0,
+                    group_name=actor_name,
+                )
 
             ray.get(refs)
 
@@ -381,6 +381,12 @@ class ActorModelRayActor(BasePPORole):
         rolename="actor",
         eos_token_id=-1):
         args = strategy.args
+
+        if getattr(args, "vllm_num_engines", 0) > 0:
+            # Prevent hanging during NCCL weight sync between DeepSpeed and vLLM
+            if getattr(args, "vllm_sync_backend", "nccl") == "nccl":
+                os.environ["NCCL_CUMEM_ENABLE"] = "0"
+
         self._setup_distributed(strategy)
         self.rolename = rolename
         self.eos_token_id = eos_token_id
@@ -418,7 +424,7 @@ class ActorModelRayActor(BasePPORole):
         actor_scheduler = get_scheduler(
             getattr(args, "actor_scheduler", "cosine_with_min_lr"),
             actor_optim,
-            num_warmup_steps=math.ceil(max_steps * args.lr_warmup_ratio),
+            num_warmup_steps=math.ceil(max_steps * args.lr_warmup_ratio) if args.lr_warmup_steps is None else args.lr_warmup_steps,
             num_training_steps=max_steps,
             scheduler_specific_kwargs={"min_lr": args.actor_learning_rate * 0.1},
         )

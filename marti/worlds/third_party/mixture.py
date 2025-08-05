@@ -6,7 +6,7 @@ from typing import List
 import concurrent.futures
 from marti.verifiers.qwen.qwen_eval import qwen_reward_fn
 from marti.verifiers.auto_verify import get_repetition_penalty_reward
-from marti.worlds.old_games.base import BaseMultiAgentGame
+from marti.worlds.third_party.base import BaseMultiAgentGame
 
 cand_template = "{query}\n\nPlease reason step by step, and put your final answer within \\boxed{{}}."
 

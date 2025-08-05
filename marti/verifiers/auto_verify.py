@@ -2,9 +2,14 @@ from tqdm import tqdm, trange
 from marti.verifiers.qwen.qwen_eval import simplerl_reward_fn, qwen_reward_fn, qwen_reward_fn_format, test_time_train
 from marti.verifiers.deepscaler.math_reward import deepscaler_reward_fn #, test_time_train
 from marti.verifiers.deepscaler.math_reward import test_time_train as test_time_train_thinking
+from marti.verifiers.search_r1.qa_em import compute_score_em
+from marti.verifiers.search_r1.qa_em_format import compute_score_em as compute_score_em_format
+from marti.verifiers.gaia.main import gaia_em_reward_fn, gaia_em_reward_fn_ttt
+# from marti.verifiers.deepcoder.code_reward import rllm_reward_fn_code
 
 def auto_verify(task, batch_size, all_outputs, all_labels):
-    all_outputs = [output.outputs[0].text for output in all_outputs]
+    if not isinstance(all_outputs[0], str):
+        all_outputs = [output.outputs[0].text for output in all_outputs]
 
     task2verify = {
         "math": qwen_reward_fn,
@@ -13,14 +18,15 @@ def auto_verify(task, batch_size, all_outputs, all_labels):
         "think": deepscaler_reward_fn,
         "ttt": test_time_train,
         "ttt_thinking": test_time_train_thinking,
+        "search_r1_format": compute_score_em_format,
+        "search_r1": compute_score_em,
+        "gaia": gaia_em_reward_fn,
+        "gaia_ttt": gaia_em_reward_fn_ttt,
     }
     assert task in task2verify, f"{task} not in {list(task2verify.keys())}"
     
     verify_fn = task2verify[task]
-    if task in ["math", "simplerl_math", "think"]:
-        rewards = [verify_fn(output, label)
-                   for output, label in tqdm(zip(all_outputs, all_labels), desc="Rewarding", total=len(all_outputs))]
-    elif task in ["ttt", "ttt_thinking"]:
+    if "ttt" in task:
         rewards = []
         n_prompts = len(all_outputs) // batch_size
         for prompt_idx in range(n_prompts):
@@ -29,6 +35,9 @@ def auto_verify(task, batch_size, all_outputs, all_labels):
             group_labels = all_labels[batch_size *
                                       prompt_idx:batch_size*(prompt_idx+1)]
             rewards.extend(verify_fn(group_outputs, group_labels))
+    else:
+        rewards = [verify_fn(output, label)
+                        for output, label in tqdm(zip(all_outputs, all_labels), desc="Rewarding", total=len(all_outputs), disable=True)]
     return rewards
 
 # https://github.com/huggingface/open-r1/blob/af487204ca09005d12b4d9a48b4162a02e9b6a35/src/open_r1/rewards.py#L268

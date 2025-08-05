@@ -6,7 +6,7 @@ from omegaconf import DictConfig, OmegaConf
 from vllm import SamplingParams
 from marti.helpers.common import get_tokenizer
 from marti.models.openai import OpenAIModel, FakeTokenizer
-from marti.worlds.old_games.chain import MultiAgentChain
+from marti.worlds.third_party.chain import MultiAgentChain
 from marti.models.vllm.engine import LLMRayActor
 
 import os
