@@ -11,6 +11,7 @@ MARTI is an open-source framework for training LLM-based Multi-Agent Systems (MA
 **MARTI is still in a very early experimental stage, we are actively developing more powerful LLM-based multi-agent RL approaches and warmly welcome collaborations in this direction.**
 
 ## 🔥 News
+- [2025-08-05] We have introduced new support for Async Tool Use in Agentic RL, and Async Workflow for Multi-Agent RL. This enables more flexible and efficient RL pipelines, supporting both single-agent and multi-agent scenarios. Look at [🔥 Customised Async Step and Workflow](#-customised-async-step-and-workflow).
 - [2025-05-27] We release the codebase of MARTI framework, welcome to have a try on LLM-based multi-agent reinforcement learning. 🤗
 
 ## 🔖 Content
@@ -22,6 +23,7 @@ MARTI is an open-source framework for training LLM-based Multi-Agent Systems (MA
   - [⚙️ Usage](#️-usage)
     - [🔁 Multi-Agent Inference](#-multi-agent-inference)
     - [🏋️ Multi-Agent Training](#️-multi-agent-training)
+    - [🔥 Customised Async Step and Workflow](#-customised-async-step-and-workflow)
     - [📊 Preliminary Experiments](#-preliminary-experiments)
       - [Training Details](#training-details)
       - [Benchmark Results](#benchmark-results)
@@ -34,6 +36,7 @@ MARTI is an open-source framework for training LLM-based Multi-Agent Systems (MA
   - [🤝 Core Contributors](#-core-contributors)
   - [📬 Contact](#-contact)
   - [🔬 Citation](#-citation)
+  - [⭐️ Star History](#️-star-history)
 
 
 ## 🔍 Overview
@@ -108,6 +111,20 @@ bash scripts/run_train_grpo.sh ${MODEL_DIR} ${WANDB_KEY}
 # Train Multi-Agent Debate with Reinforce++
 bash scripts/run_train_mad.sh ${MODEL_DIR} ${WANDB_KEY}
 ```
+
+### 🔥 Customised Async Step and Workflow
+
+We introduce asynchronous tool use and workflow support for both single-agent and multi-agent RL pipelines. These features make our framework more modular, efficient, and scalable for a variety of RL scenarios.
+
+**Single Agent Tool Use**
+- Modular Steps (`marti/worlds/steps`): Each agent's actions are now organized in step files (e.g., `xxx_step.py`), making it easy to customize and extend for new tasks.
+- Expanded Toolset (`marti/worlds/tools`): Our agents now have access to a broader range of tools for agentic decision-making, enabling richer interactions and problem-solving capabilities.
+
+**Multi-Agent Workflow**
+- Workflow Orchestration (`marti/worlds/workflows`): We now support orchestrating complex multi-agent environments via modular workflow files (e.g., `xxx_workflow.py`). This allows coordinated interactions between multiple agents in a flexible and easily configurable manner.
+- Advanced Processors (`marti/worlds/workflows`): Integrated processors (e.g., `xxx_processor.py`) support advanced reward shaping and custom feedback loops, empowering more sophisticated learning dynamics and agent cooperation/competition.
+
+These improvements open up new possibilities for research and deployment in both single-agent and multi-agent RL settings. As always, we're keen for your feedback and contributions!
 
 ### 📊 Preliminary Experiments
 
