@@ -82,7 +82,7 @@ class ToolWorld(BaseWorld):
             self.tools = register_mcp_tools(self.tool_manager)
         else:
             self.tool_manager = ToolManager(self.tools_config)
-            self.tools = register_openai_tools(self.tool_manager, self.tool_manager)
+            self.tools = register_openai_tools(self.tools_config, self.tool_manager)
 
         print_tools(self.tools)
 
