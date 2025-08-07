@@ -128,6 +128,8 @@ bash scripts/run_train_grpo_code.sh
 bash scripts/run_train_grpo_search.sh
 ```
 
+> Note: You can refer to [PeterGriffinJin/Search-R1](https://github.com/PeterGriffinJin/Search-R1) and [bytedance/SandboxFusion](https://github.com/bytedance/SandboxFusion) separately to set up search and code tool services.
+
 **Multi-Agent Workflow**
 - Workflow Orchestration (`marti/worlds/workflows`): We now support orchestrating complex multi-agent environments via modular workflow files (e.g., `xxx_workflow.py`). This allows coordinated interactions between multiple agents in a flexible and easily configurable manner.
 - Advanced Processors (`marti/worlds/workflows`): Integrated processors (e.g., `xxx_processor.py`) support advanced reward shaping and custom feedback loops, empowering more sophisticated learning dynamics and agent cooperation/competition.
@@ -141,6 +143,7 @@ bash scripts/run_train_mad_async.sh
 ```
 
 These improvements open up new possibilities for research and deployment in both single-agent and multi-agent RL settings. As always, we're keen for your feedback and contributions!
+
 
 
 ### 📊 Preliminary Experiments
