@@ -67,6 +67,7 @@ Additionally, building on single-agent RL frameworks like [OpenRLHF](https://git
 git clone https://github.com/TsinghuaC3I/MARTI.git
 cd MARTI
 
+pip install torch==2.6.0
 pip install -r requirements.txt
 ```
 
@@ -83,7 +84,7 @@ MARTI supports:
 Example:
 
 ```bash
-MODLE_DIR="Path to models, like Qwen2.5-3B"
+export MODLE_DIR="Path to models, like Qwen2.5-3B"
 
 # See the script for more inference examples
 bash scripts/run_test_mas.sh ${MODEL_DIR}
@@ -102,8 +103,8 @@ Example:
 ```bash
 # Minimum hardware requirement for training with 3 Qwen2.5-3B agents: approximately 6×80G GPUs
 
-MODLE_DIR="Path to models, like Qwen2.5-3B"
-WANDB_KEY="API key of wandb"
+export MODLE_DIR="Path to models, like Qwen2.5-3B"
+export WANDB_KEY="API key of wandb"
 
 # Train Single Agent with GRPO
 bash scripts/run_train_grpo.sh ${MODEL_DIR} ${WANDB_KEY}

@@ -9,11 +9,13 @@ flash_attn==2.7.0.post2
 vllm==0.8.5.post1
 latex2sympy2
 numpy
+ninja
 mcp
 pandas
 peft
 pylatexenc
 ray==2.43.0
+ray[default]
 regex
 Requests
 ring_flash_attn

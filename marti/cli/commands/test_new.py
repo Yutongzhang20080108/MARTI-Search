@@ -27,11 +27,6 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def _validate_config(cfg: DictConfig):
-    """
-    Validate the configuration: 
-    1. requires actor/critic world sizes be power of two
-    2. If ZERO3 then vLLM must be enables
-    """
     actor_world_size = cfg.actor_num_nodes * cfg.actor_num_gpus_per_node
 
     assert (
@@ -50,15 +45,6 @@ def _validate_config(cfg: DictConfig):
     assert cfg.zero_stage != 3 or cfg.vllm_num_engines > 0, f"ZeRO-3 is only supported when vLLM enabled"
 
 def _rationalize_config(cfg: DictConfig):
-    """
-    rationalize the config
-    1. sets critic_pretrain defaults
-    2. enforces RLOO requires n_samples_per_prompt > 1
-    3. splits remote_rm_url
-    4. disables prefix cache for vLLM < 0.7.0
-    5. warns about input_template
-    6. enforces packing_samples constraints
-    """
     if cfg.advantage_estimator not in ["gae"]:
         cfg.critic_pretrain = None
     elif cfg.critic_pretrain is None:

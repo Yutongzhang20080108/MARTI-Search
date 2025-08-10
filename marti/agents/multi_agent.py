@@ -9,14 +9,7 @@ import ray
 import json
 from copy import deepcopy
 import random
-try:
-    # vLLM sampling configuration
-    from vllm import SamplingParams
-except Exception:  # pragma: no cover - fallback if vLLM not available at import time
-    class SamplingParams:  # lightweight shim for attribute access in non-vLLM contexts
-        def __init__(self, **kwargs):
-            for k, v in kwargs.items():
-                setattr(self, k, v)
+from vllm import SamplingParams
 
 def get_kwargs(
     args,
@@ -86,8 +79,6 @@ def get_kwargs(
             except Exception as e:
                 raise ValueError(f"Prompt for agent {agent_id} ({agent_role}) is not defined for round {j}")
 
-    # Build default vLLM SamplingParams from args (with a simple demo strategy override)
-    # Pull common generation knobs from args; they are promoted from default_agent in test_new.py
     n = getattr(args, "n_samples_per_prompt", 1)
     temperature = getattr(args, "temperature", 0.6)
     top_p = getattr(args, "top_p", 1.0)
@@ -121,8 +112,6 @@ def get_kwargs(
         "spatial_adj_mats": spatial_adj_mats,
         "temporal_adj_mats": temporal_adj_mats,
     "sampling_params": sampling_params,
-    # Alias for compatibility with callers that expect `sampling_parameters`
-    "sampling_parameters": sampling_params,
     }
 
 
