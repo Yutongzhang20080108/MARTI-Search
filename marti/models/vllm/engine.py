@@ -151,6 +151,14 @@ def create_vllm_engines(
         shared_pg = placement_group(bundles, strategy="PACK")
         ray.get(shared_pg.ready())
 
+    # Ensure gpu_memory_utilization is a valid float in (0, 1]
+    if gpu_memory_utilization is None:
+        env_val = os.getenv("VLLM_GPU_MEMORY_UTILIZATION", "")
+        try:
+            gpu_memory_utilization = float(env_val) if env_val else 0.9
+        except Exception:
+            gpu_memory_utilization = 0.9
+
     vllm_engines = []
 
     for i in range(num_engines):

@@ -9,6 +9,14 @@ import ray
 import json
 from copy import deepcopy
 import random
+try:
+    # vLLM sampling configuration
+    from vllm import SamplingParams
+except Exception:  # pragma: no cover - fallback if vLLM not available at import time
+    class SamplingParams:  # lightweight shim for attribute access in non-vLLM contexts
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
 
 def get_kwargs(
     args,
@@ -78,12 +86,43 @@ def get_kwargs(
             except Exception as e:
                 raise ValueError(f"Prompt for agent {agent_id} ({agent_role}) is not defined for round {j}")
 
+    # Build default vLLM SamplingParams from args (with a simple demo strategy override)
+    # Pull common generation knobs from args; they are promoted from default_agent in test_new.py
+    n = getattr(args, "n_samples_per_prompt", 1)
+    temperature = getattr(args, "temperature", 0.6)
+    top_p = getattr(args, "top_p", 1.0)
+    top_k = getattr(args, "top_k", -1)
+    max_tokens = getattr(args, "generate_max_len", 512)
+    min_tokens = getattr(args, "min_new_tokens", 1)
+    skip_special_tokens = getattr(args, "skip_special_tokens", False)
+
+    # Optional sampling strategy knob; if set to "demo", use a multi-sample, moderately random setup
+    sampling_strategy = getattr(args, "sampling_strategy", None)
+    if sampling_strategy == "demo":
+        n = max(3, int(n) if isinstance(n, int) else 1)
+        temperature = max(0.6, float(temperature))
+        top_p = 0.95 if top_p is None else min(0.95, float(top_p))
+        top_k = -1 if top_k is None else int(top_k)
+
+    sampling_params = SamplingParams(
+        n=n,
+        temperature=temperature,
+        top_p=top_p,
+        top_k=top_k,
+        max_tokens=max_tokens,
+        min_tokens=min_tokens,
+        skip_special_tokens=skip_special_tokens,
+    )
+
     return {
         "prompt": prompt,
         "agent_ids": agent_ids,
         "agent_roles": agent_roles,
         "spatial_adj_mats": spatial_adj_mats,
         "temporal_adj_mats": temporal_adj_mats,
+    "sampling_params": sampling_params,
+    # Alias for compatibility with callers that expect `sampling_parameters`
+    "sampling_parameters": sampling_params,
     }
 
 
@@ -106,7 +145,10 @@ class MAGraph(ABC):
     ):
         self.id: str = shortuuid.ShortUUID().random(length=4)
         self.agents = agents
-        self.id2agent = {agent["agent_id"]: i for i, agent in enumerate(agents)}
+        # Map from node/agent id string to index in self.agents
+        # The previous implementation expected a non-existent `agent_id` key in each agent dict.
+        # We instead rely on the provided `agent_ids` list, which is used to initialize MathSolver ids.
+        self.id2agent = {agent_ids[i]: i for i in range(len(agents))}
         self.agent_ids: List[str] = agent_ids
         self.agent_roles: List[str] = agent_roles
         self.agent_workflow = agent_workflow

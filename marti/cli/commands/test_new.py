@@ -1,3 +1,6 @@
+"""One episode here means that the whole sampling process 
+is repeated for multiple times"""
+
 import ray
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -24,6 +27,11 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def _validate_config(cfg: DictConfig):
+    """
+    Validate the configuration: 
+    1. requires actor/critic world sizes be power of two
+    2. If ZERO3 then vLLM must be enables
+    """
     actor_world_size = cfg.actor_num_nodes * cfg.actor_num_gpus_per_node
 
     assert (
@@ -42,6 +50,15 @@ def _validate_config(cfg: DictConfig):
     assert cfg.zero_stage != 3 or cfg.vllm_num_engines > 0, f"ZeRO-3 is only supported when vLLM enabled"
 
 def _rationalize_config(cfg: DictConfig):
+    """
+    rationalize the config
+    1. sets critic_pretrain defaults
+    2. enforces RLOO requires n_samples_per_prompt > 1
+    3. splits remote_rm_url
+    4. disables prefix cache for vLLM < 0.7.0
+    5. warns about input_template
+    6. enforces packing_samples constraints
+    """
     if cfg.advantage_estimator not in ["gae"]:
         cfg.critic_pretrain = None
     elif cfg.critic_pretrain is None:
@@ -96,12 +113,13 @@ class MultiAgentWorld(BaseWorld):
 
         graph = MAGraph(
             agents=self.agents,
-            agent_names=kwargs['agent_names'],
+            agent_ids=kwargs['agent_ids'],
             agent_roles=kwargs['agent_roles'],
             agent_workflow=args.agent_workflow,
             prompt=kwargs['prompt'],
             spatial_adj_mats=kwargs['spatial_adj_mats'],
             temporal_adj_mats=kwargs['temporal_adj_mats'],
+            sampling_params=kwargs['sampling_params'],
             node_kwargs=kwargs['node_kwargs'] if 'node_kwargs' in kwargs else None,
         )
         history = graph.run(all_prompts, num_rounds=args.workflow_args.num_rounds)
@@ -127,10 +145,10 @@ class MultiAgentWorld(BaseWorld):
                                 reward = majority_vote(output['output'], label)
                         rewards.append(reward)
                     temp_history.append({
-                        'agent_name': round_history['agent_name'],
+                        'agent_id': round_history['agent_id'],
                         'agent_role': round_history['agent_role'],
                         'pretrain': round_history['pretrain'],
-                        'round_id': round_history['round_id'],
+                        'turn_id': round_history['turn_id'],
                         'inputs': inputs[problem_id],
                         'outputs': outputs[problem_id],
                         'rewards': rewards[problem_id],
@@ -239,6 +257,9 @@ def train(cfg: DictConfig):
                     agent_config.enable_prefix_caching,
                     agent_config.enforce_eager,
                     max_len,
+                    None,  # shared_pg
+                    agent_config.vllm_gpu_memory_utilization,
+                    getattr(agent_config, "vllm_enable_sleep", False),
                 )
                 llm_dict[agent_config.pretrain] = agent_llms
                 seed += agent_config.vllm_num_engines

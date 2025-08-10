@@ -35,7 +35,7 @@ ROOT_DIR=$(pwd)
 DATE=$(date +%m%d)
 ADVANTAGE="group_norm"
 # SHORT_NAME="Qwen2.5-3B-Instruct"
-SHORT_NAME="Qwen3-4B"
+SHORT_NAME="Qwen2.5-3B"
 
 TASK="search_r1"
 ALGO="tool-search-r1-async-ready-task"
@@ -54,8 +54,8 @@ mkdir -p "${ROOT_DIR}/logs/std"
 mkdir -p "${ROOT_DIR}/logs/tensorboard"
 mkdir -p "${ROOT_DIR}/outputs"
 
-PROMPT_MAX_LEN=16384
-GENERATE_MAX_LEN=4096
+PROMPT_MAX_LEN=7000
+GENERATE_MAX_LEN=1000
 
 
 ENV_JSON=$(cat <<EOF
@@ -137,8 +137,8 @@ ray job submit --address="http://localhost:8265" \
     wandb_run_name="${EXP}" \
     extra_eval_tasks=["nq","musique","bamboogle"] \
     extra_eval_dir="${ROOT_DIR}/local/bench" \
-    use_tensorboard="${TENSORBOARD}" 2>&1 | tee "${ROOT_DIR}/logs/std/${DATE}-${EXP}.log"
+    use_tensorboard="${TENSORBOARD}" 2>&1 | tee "${ROOT_DIR}/logs/std/${DATE}-${EXP}.log" \
 
-  # use_wandb="${WANDB_KEY}" \
+    use_wandb="${WANDB_KEY}" \
 
 echo "Model Training Finished. Shutting down..."
