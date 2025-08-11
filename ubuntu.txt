@@ -57,3 +57,6 @@ To test the retriever
 curl -X POST "http://127.0.0.1:8080/retrieve" \
   -H "Content-Type: application/json" \
   -d '{"queries": ["What is Python?"], "topk": 3, "return_scores": true}'
+
+git config --global user.email "yutongzhang20080108@outlook.com"
+git config --global user.name "Aaron Zhang"
