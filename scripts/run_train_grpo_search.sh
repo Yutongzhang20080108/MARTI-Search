@@ -35,7 +35,7 @@ ROOT_DIR=$(pwd)
 DATE=$(date +%m%d)
 ADVANTAGE="group_norm"
 # SHORT_NAME="Qwen2.5-3B-Instruct"
-SHORT_NAME="Qwen3-4B"
+SHORT_NAME="Qwen2.5-3B-Instruct"
 
 TASK="search_r1"
 ALGO="tool-search-r1-async-ready-task"
@@ -43,19 +43,19 @@ ALGO="tool-search-r1-async-ready-task"
 PRETRAIN="${MODEL_DIR}/${SHORT_NAME}"
 EXP="${DATE}-${TASK}-${SHORT_NAME}-${ADVANTAGE}-${ALGO}"
 
-SAVE_PATH="${ROOT_DIR}/outputs/${ADVANTAGE}-${ALGO}/${DATE}/${SHORT_NAME}/model"
+SAVE_PATH="/data/outputs/${ADVANTAGE}-${ALGO}/${DATE}/${SHORT_NAME}/model"
 
-PROMPT_DATA="json@${ROOT_DIR}/local/${TASK}"
+PROMPT_DATA="json@/data/local/${TASK}"
 TENSORBOARD="${ROOT_DIR}/logs/tensorboard/${ADVANTAGE}-${ALGO}-${DATE}-${SHORT_NAME}"
-CKPT_PATH="${ROOT_DIR}/outputs/${ADVANTAGE}-${ALGO}//${DATE}/${SHORT_NAME}/ckpt"
+CKPT_PATH="/data/outputs/${ADVANTAGE}-${ALGO}//${DATE}/${SHORT_NAME}/ckpt"
 
 mkdir -p "${ROOT_DIR}/logs"
 mkdir -p "${ROOT_DIR}/logs/std"
 mkdir -p "${ROOT_DIR}/logs/tensorboard"
 mkdir -p "${ROOT_DIR}/outputs"
 
-PROMPT_MAX_LEN=16384
-GENERATE_MAX_LEN=4096
+PROMPT_MAX_LEN=6144
+GENERATE_MAX_LEN=2048
 
 
 ENV_JSON=$(cat <<EOF
@@ -84,7 +84,7 @@ ray job submit --address="http://localhost:8265" \
     default_agent.colocate_all_models=True \
     default_agent.vllm_enable_sleep=True \
     default_agent.deepspeed_enable_sleep=True \
-    default_agent.vllm_gpu_memory_utilization=0.6 \
+    default_agent.vllm_gpu_memory_utilization=0.9 \
     default_agent.pretrain="${PRETRAIN}" \
     default_agent.save_path="${SAVE_PATH}" \
     default_agent.micro_train_batch_size=4 \
@@ -129,16 +129,16 @@ ray job submit --address="http://localhost:8265" \
     separate_label_list="LABEL_SEP" \
     packing_samples=True \
     prompt_data="${PROMPT_DATA}" \
-    input_key="problem" \
-    label_key="answer" \
+    input_key="question" \
+    label_key="golden_answers" \
     add_prompt_suffix=null \
-    apply_chat_template=False \
+    apply_chat_template=True \
+    use_wandb="${WANDB_KEY}" \
     wandb_project="MARTI-Dev" \
     wandb_run_name="${EXP}" \
     extra_eval_tasks=["nq","musique","bamboogle"] \
-    extra_eval_dir="${ROOT_DIR}/local/bench" \
-    use_tensorboard="${TENSORBOARD}" 2>&1 | tee "${ROOT_DIR}/logs/std/${DATE}-${EXP}.log"
+    extra_eval_dir="/data/local/bench" \
+    use_tensorboard="${TENSORBOARD}" 2>&1 | tee "${ROOT_DIR}/logs/std/${DATE}-${EXP}.log"\
 
-  # use_wandb="${WANDB_KEY}" \
 
 echo "Model Training Finished. Shutting down..."

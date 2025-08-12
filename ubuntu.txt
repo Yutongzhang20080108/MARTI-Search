@@ -1,4 +1,4 @@
-Env preparation
+system preparation
 
 1. sudo apt install git-lfs
 2. sudo apt-get install cuda-toolkit-12-8
@@ -53,6 +53,12 @@ For Search Engine Environment
 ## API function
 6. pip install uvicorn fastapi
 
+To launch the retriever Engine
+save_path=/the/path/to/save
+python scripts/download.py --save_path $save_path
+cat $save_path/part_* > $save_path/e5_Flat.index
+gzip -d $save_path/wiki-18.jsonl.gz
+
 To test the retriever
 curl -X POST "http://127.0.0.1:8080/retrieve" \
   -H "Content-Type: application/json" \
@@ -60,3 +66,5 @@ curl -X POST "http://127.0.0.1:8080/retrieve" \
 
 git config --global user.email "yutongzhang20080108@outlook.com"
 git config --global user.name "Aaron Zhang"
+
+bash scripts/run_train_grpo_search.sh ${MODEL_DIR} ${WANDB_KEY}
